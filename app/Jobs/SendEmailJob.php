@@ -36,8 +36,6 @@ class SendEmailJob implements ShouldQueue
                     )
                 );
 
-                Log::info("Email sent to {$recipient}");
-
             } catch (\Throwable $e) {
                 Log::error("Failed to send email to {$recipient}: " . $e->getMessage());
 

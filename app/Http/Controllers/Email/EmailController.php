@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use F9Web\ApiResponseHelpers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Log;
 
 class EmailController extends Controller
 {
