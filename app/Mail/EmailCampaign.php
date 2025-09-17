@@ -29,12 +29,10 @@ class EmailCampaign extends Mailable
 
         if (!empty($this->attachmentFiles)) {
             foreach ($this->attachmentFiles as $file) {
-                $email->attach(
-                    storage_path("app/public/{$file['path']}"),
-                    [
-                        'as' => $file['name'],
-                        'mime' => $file['mime']
-                    ]
+                $email->attachFromUrl(
+                    $file['url'], // Public URL
+                    $file['name'] ?? null,
+                    ['mime' => $file['mime'] ?? null]
                 );
             }
         }
