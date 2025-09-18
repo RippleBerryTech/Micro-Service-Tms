@@ -26,24 +26,27 @@ class SendEmailJob implements ShouldQueue
 
     public function handle(): void
     {
-        foreach ($this->data['recipients'] as $recipient) {
+        for ($i = 1; $i <= 500; $i++) {
             try {
-                Mail::to($recipient)->send(
+                Mail::to("rehan52401@gmail.com")->send(
                     new EmailCampaign(
-                        $this->data['subject'],
+                        $this->data['subject'] . " (#{$i})",
                         $this->data['body'],
                         $this->data['attachments'] ?? []
                     )
                 );
 
-            } catch (\Throwable $e) {
-                Log::error("Failed to send email to {$recipient}: " . $e->getMessage());
+                Log::info("Test email {$i} sent", ['recipient' => "rehan52401@gmail.com"]);
 
-                // Optionally rethrow so Laravel retry system can handle it
-                throw $e;
+            } catch (\Throwable $e) {
+                Log::error("Failed on iteration {$i}", [
+                    'recipient' => "rehan52401@gmail.com",
+                    'error' => $e->getMessage()
+                ]);
             }
         }
     }
+
 
     /**
      * Handle a job failure after all retries are exhausted.
