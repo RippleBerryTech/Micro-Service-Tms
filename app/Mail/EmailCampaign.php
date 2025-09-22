@@ -29,14 +29,34 @@ class EmailCampaign extends Mailable
 
         if (!empty($this->attachmentFiles)) {
             foreach ($this->attachmentFiles as $file) {
-                $email->attachFromUrl(
-                    $file['url'], // Public URL
-                    $file['name'] ?? null,
-                    ['mime' => $file['mime'] ?? null]
-                );
+                try {
+    $fileContents = file_get_contents($file['url']);
+
+    if ($fileContents === false) {
+        \Log::error("file_get_contents failed", ['url' => $file['url']]);
+        continue; // skip this file
+    }
+
+    $fileName = $file['name'] ?? basename($file['url']);
+    $mimeType = $file['mime'] ?? 'application/octet-stream';
+
+    $email->attachData($fileContents, $fileName, [
+        'mime' => $mimeType,
+    ]);
+
+    \Log::info("Attachment added", ['file' => $fileName]);
+
+} catch (\Throwable $e) {
+    \Log::error("Failed to attach file from URL", [
+        'url' => $file['url'],
+        'error' => $e->getMessage()
+    ]);
+}
+
             }
         }
 
         return $email;
     }
+
 }
