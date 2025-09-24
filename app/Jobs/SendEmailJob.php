@@ -5,6 +5,7 @@ namespace App\Jobs;
 
 use App\Mail\EmailCampaign;
 use Illuminate\Bus\Queueable;
+use App\Models\EmailCampaignLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Queue\SerializesModels;
@@ -34,10 +35,22 @@ class SendEmailJob implements ShouldQueue
                         $this->data['attachments'] ?? []
                     )
                 );
+            // Log success in DB
+                EmailCampaignLog::create([
+                    'recipient' => $recipient,
+                    'success'   => true,
+                ]);
+
+                Log::info("Email sent successfully to {$recipient}");
             } catch (\Throwable $e) {
+                // Log failure in DB
+                EmailCampaignLog::create([
+                    'recipient'     => $recipient,
+                    'success'       => false,
+                    'error_message' => $e->getMessage(),
+                ]);
+
                 Log::error("Failed to send email to {$recipient}: " . $e->getMessage());
-                // Optionally rethrow so Laravel retry system can handle it
-                throw $e;
             }
         }
     }
