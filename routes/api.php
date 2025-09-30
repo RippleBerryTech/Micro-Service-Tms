@@ -21,3 +21,7 @@ use App\Http\Controllers\Email\EmailController;
             Route::post('/emails/send', 'sendEmail');
         });
     });
+
+    Route::get('/keepalive', function () {
+    return response()->json(['status' => 'ok', 'time' => now()]);
+});
