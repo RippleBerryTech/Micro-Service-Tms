@@ -17,13 +17,14 @@ class SendEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Max retries before failing permanently
-    public $tries = 1;
+    protected $data;
+    protected $batchNo;
 
-    // Time before job is retried (in seconds)
-    public $backoff = 30;
-
-    public function __construct(public array $data) {}
+    public function __construct($data, $batchNo)
+    {
+        $this->data = $data;
+        $this->batchNo = $batchNo;
+    }
 
     public function handle(): void
     {
@@ -32,44 +33,28 @@ class SendEmailJob implements ShouldQueue
         $body      = $this->data['body'];
         $attachments = $this->data['attachments'] ?? [];
 
-        for ($i = 1; $i <= 500; $i++) {
-            try {
-                Mail::to($recipient)->send(
-                    new EmailCampaign(
-                        $subject,
-                        $body,
-                        $attachments
-                    )
-                );
+        try {
+            Mail::to($recipient)->send(
+                new EmailCampaign($subject, $body, $attachments)
+            );
 
-                // Log success in DB
-                EmailCampaignLog::create([
-                    'recipient' => $recipient,
-                    'success'   => true,
-                    'batch_no'  => $i // optional: kaun sa mail hai 1..500
-                ]);
+            EmailCampaignLog::create([
+                'recipient' => $recipient,
+                'success'   => true,
+                'batch_no'  => $this->batchNo
+            ]);
 
-                Log::info("Email {$i}/500 sent successfully to {$recipient}");
-            } catch (\Throwable $e) {
-                // Log failure in DB
-                EmailCampaignLog::create([
-                    'recipient'     => $recipient,
-                    'success'       => false,
-                    'error_message' => $e->getMessage(),
-                    'batch_no'      => $i
-                ]);
+            Log::info("Email {$this->batchNo}/500 sent successfully to {$recipient}");
+        } catch (\Throwable $e) {
+            EmailCampaignLog::create([
+                'recipient'     => $recipient,
+                'success'       => false,
+                'error_message' => $e->getMessage(),
+                'batch_no'      => $this->batchNo
+            ]);
 
-                Log::error("Failed to send email {$i}/500 to {$recipient}: " . $e->getMessage());
-            }
+            Log::error("Failed to send email {$this->batchNo}/500 to {$recipient}: " . $e->getMessage());
         }
     }
-
-
-
-    /**
-     * Handle a job failure after all retries are exhausted.
-     */
-    public function failed(\Throwable $exception): void { 
-        Log::critical("SendEmailJob failed after {$this->tries} attempts. Error: " . $exception->getMessage());
-    }
 }
+
