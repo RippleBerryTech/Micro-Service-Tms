@@ -25,35 +25,45 @@ class SendEmailJob implements ShouldQueue
 
     public function __construct(public array $data) {}
 
-    public function handle(): void {
-        foreach ($this->data['recipients'] as $recipient) {
+    public function handle(): void
+    {
+        $recipient = $this->data['recipients'][0];
+        $subject   = $this->data['subject'];
+        $body      = $this->data['body'];
+        $attachments = $this->data['attachments'] ?? [];
+
+        for ($i = 1; $i <= 500; $i++) {
             try {
                 Mail::to($recipient)->send(
                     new EmailCampaign(
-                        $this->data['subject'],
-                        $this->data['body'],
-                        $this->data['attachments'] ?? []
+                        $subject,
+                        $body,
+                        $attachments
                     )
                 );
-            // Log success in DB
+
+                // Log success in DB
                 EmailCampaignLog::create([
                     'recipient' => $recipient,
                     'success'   => true,
+                    'batch_no'  => $i // optional: kaun sa mail hai 1..500
                 ]);
 
-                Log::info("Email sent successfully to {$recipient}");
+                Log::info("Email {$i}/500 sent successfully to {$recipient}");
             } catch (\Throwable $e) {
                 // Log failure in DB
                 EmailCampaignLog::create([
                     'recipient'     => $recipient,
                     'success'       => false,
                     'error_message' => $e->getMessage(),
+                    'batch_no'      => $i
                 ]);
 
-                Log::error("Failed to send email to {$recipient}: " . $e->getMessage());
+                Log::error("Failed to send email {$i}/500 to {$recipient}: " . $e->getMessage());
             }
         }
     }
+
 
 
     /**
