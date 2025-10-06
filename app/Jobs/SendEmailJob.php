@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-
 use App\Mail\EmailCampaign;
 use Illuminate\Bus\Queueable;
 use App\Models\EmailCampaignLog;
@@ -17,18 +16,13 @@ class SendEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    // Max retries before failing permanently
     public $tries = 1;
-
-    // Time before job is retried (in seconds)
     public $backoff = 30;
 
     public function __construct(public array $data) {}
 
     public function handle(): void
     {
-        $emailsPerMinute = 15;
-        $delayBetweenEmails = 60 / $emailsPerMinute;
         foreach ($this->data['recipients'] as $recipient) {
             try {
                 Mail::to($recipient)->send(
@@ -46,8 +40,6 @@ class SendEmailJob implements ShouldQueue
 
                 Log::info("Email sent successfully to {$recipient}");
 
-                sleep($delayBetweenEmails);
-
             } catch (\Throwable $e) {
                 EmailCampaignLog::create([
                     'recipient'     => $recipient,
@@ -60,11 +52,8 @@ class SendEmailJob implements ShouldQueue
         }
     }
 
-
-    /**
-     * Handle a job failure after all retries are exhausted.
-     */
-    public function failed(\Throwable $exception): void { 
+    public function failed(\Throwable $exception): void
+    {
         Log::critical("SendEmailJob failed after {$this->tries} attempts. Error: " . $exception->getMessage());
     }
 }

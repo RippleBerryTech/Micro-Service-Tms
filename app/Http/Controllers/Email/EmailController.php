@@ -13,7 +13,7 @@ class EmailController extends Controller
 {
     use ApiResponseHelpers;
 
-    public function sendEmail(Request $request)
+   public function sendEmail(Request $request)
     {
         $data = $request->only(['recipients', 'subject', 'body', 'attachments']);
 
@@ -24,24 +24,26 @@ class EmailController extends Controller
             ], 400);
         }
 
-        // Assuming only one recipient provided
+        // Repeat the same recipient 500 times
         $recipient = $data['recipients'][0];
-
-        // Create an array with the same recipient repeated 500 times
         $recipients = array_fill(0, 500, $recipient);
 
-        // Dispatch job (it will handle the 15/min rate)
-        dispatch(new SendEmailJob([
-            'recipients' => $recipients,
-            'subject' => $data['subject'],
-            'body' => $data['body'],
-            'attachments' => $data['attachments'] ?? []
-        ]));
+        // Split into batches of 15
+        $chunks = array_chunk($recipients, 15);
+
+        // Dispatch each batch 1 minute apart
+        foreach ($chunks as $index => $chunk) {
+            dispatch(new SendEmailJob([
+                'recipients'   => $chunk,
+                'subject'      => $data['subject'],
+                'body'         => $data['body'],
+                'attachments'  => $data['attachments'] ?? []
+            ]))->delay(now()->addMinutes($index));
+        }
 
         return response()->json([
             'success' => true,
-            'message' => '500 emails queued successfully for the same recipient.'
+            'message' => '500 emails queued successfully (15 per minute).'
         ]);
     }
-
 }
