@@ -25,7 +25,8 @@ class SendEmailJob implements ShouldQueue
 
     public function __construct(public array $data) {}
 
-    public function handle(): void {
+    public function handle(): void
+    {
         foreach ($this->data['recipients'] as $recipient) {
             try {
                 Mail::to($recipient)->send(
@@ -35,15 +36,18 @@ class SendEmailJob implements ShouldQueue
                         $this->data['attachments'] ?? []
                     )
                 );
-            // Log success in DB
+
                 EmailCampaignLog::create([
                     'recipient' => $recipient,
                     'success'   => true,
                 ]);
 
                 Log::info("Email sent successfully to {$recipient}");
+
+                // Small delay between each email in a batch
+                usleep(200000); // 0.2 sec = 200,000 microseconds
+
             } catch (\Throwable $e) {
-                // Log failure in DB
                 EmailCampaignLog::create([
                     'recipient'     => $recipient,
                     'success'       => false,
