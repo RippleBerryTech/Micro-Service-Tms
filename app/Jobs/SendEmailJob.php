@@ -27,6 +27,8 @@ class SendEmailJob implements ShouldQueue
 
     public function handle(): void
     {
+        $emailsPerMinute = 15;
+        $delayBetweenEmails = 60 / $emailsPerMinute;
         foreach ($this->data['recipients'] as $recipient) {
             try {
                 Mail::to($recipient)->send(
@@ -44,8 +46,7 @@ class SendEmailJob implements ShouldQueue
 
                 Log::info("Email sent successfully to {$recipient}");
 
-                // Small delay between each email in a batch
-                usleep(200000); // 0.2 sec = 200,000 microseconds
+                sleep($delayBetweenEmails);
 
             } catch (\Throwable $e) {
                 EmailCampaignLog::create([
